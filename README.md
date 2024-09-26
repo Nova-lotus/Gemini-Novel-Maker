@@ -19,7 +19,7 @@ This project uses Google's Gemini API models to generate chapters for a novel.  
 
 2. **Clone the Repository**:
    ```sh
-   git clone https://github.com/yourusername/gemini-novel-maker.git
+   git clone https://github.com/Nova-lotus/Gemini-Novel-Maker.git
    cd gemini-novel-maker
    ```
 
