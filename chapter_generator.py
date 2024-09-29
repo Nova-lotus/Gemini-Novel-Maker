@@ -26,6 +26,7 @@ class ChapterGenerator:
         try:
             self.logger.info(f"Generating chapter {chapter_number}...")
 
+            # Get previous chapters content
             previous_chapters = self.get_existing_chapter_content(chapter_number)
             
             prompt = self._construct_prompt(instructions, context, previous_chapters, chapter_path)
@@ -49,35 +50,33 @@ class ChapterGenerator:
             
             self.logger.info(f"Chapter {chapter_number} generation completed.")
             
-            # Check the chapter
-            self.logger.info(f"Checking chapter {chapter_number}...")
-            is_valid, feedback = self.check_chapter(chapter, instructions, previous_chapters)
-            
-            # Review the chapter
-            review_feedback = self.review_chapter(chapter, instructions, previous_chapters)
-
-            # Enforce style guide
-            style_guide = instructions.get('style_guide', '')
-            adheres_to_style_guide, style_guide_feedback = self.enforce_style_guide(chapter, style_guide)
-
-            # Check continuity (only if there are previous chapters)
-            continuity = True
-            continuity_feedback = "No previous chapters available for continuity check."
-            if previous_chapters:
-                continuity, continuity_feedback = self.check_continuity(chapter, previous_chapters)
-
-            # Run automated tests
-            test_results = self.run_tests(chapter, instructions, previous_chapters)
-
             # Save the chapter regardless of warnings
             self.save_response(chapter, chapter_path, chapter_number)
-            self.save_validity_feedback(is_valid, feedback, chapter_path, review_feedback, style_guide_feedback, continuity_feedback, test_results, adheres_to_style_guide, continuity, chapter_number)
-
+            
             # Extend the chapter if it's too short
             if len(chapter.split()) < min_word_count:
                 self.logger.info(f"Extending chapter {chapter_number} as it is below the minimum word count...")
                 chapter = self.extend_chapter(chapter, instructions, context, min_word_count)
-
+                self.save_response(chapter, chapter_path, chapter_number) # Resave the extended chapter
+            
+            # Run checks *after* potential extension
+            self.logger.info(f"Checking chapter {chapter_number}...")
+            is_valid, feedback = self.check_chapter(chapter, instructions, previous_chapters)
+            
+            review_feedback = self.review_chapter(chapter, instructions, previous_chapters)
+            
+            style_guide = instructions.get('style_guide', '')
+            adheres_to_style_guide, style_guide_feedback = self.enforce_style_guide(chapter, style_guide)
+            
+            continuity = True
+            continuity_feedback = "No previous chapters available for continuity check."
+            if previous_chapters:
+                continuity, continuity_feedback = self.check_continuity(chapter, previous_chapters)
+            
+            test_results = self.run_tests(chapter, instructions, previous_chapters)
+            
+            self.save_validity_feedback(is_valid, feedback, chapter_path, review_feedback, style_guide_feedback, continuity_feedback, test_results, adheres_to_style_guide, continuity, chapter_number)
+            
             return chapter
 
         except Exception as e:
@@ -94,7 +93,7 @@ class ChapterGenerator:
             return 1  # Default to chapter 1 if extraction fails
 
     def _construct_prompt(self, instructions: Dict[str, Any], context: str, previous_chapters: Optional[str], chapter_path: str) -> str:
-        prompt = f"""
+        prompt = f"""Write chapter {instructions.get('chapter_number', '')}.
         Instructions:
         Plot: {instructions.get('plot', '')}
         Writing Style: {instructions.get('writing_style', '')}
@@ -229,7 +228,7 @@ class ChapterGenerator:
                 if total_tokens + chapter_tokens > self.MAX_INPUT_TOKENS // 2:  # Use only half for previous chapters
                     break
 
-                existing_content = chapter_content + "\n" + existing_content
+                existing_content = f"Chapter {current_chapter_number}: {chapter_content}\n" + existing_content # Add chapter number before content
                 total_tokens += chapter_tokens
 
         return existing_content if existing_content else None

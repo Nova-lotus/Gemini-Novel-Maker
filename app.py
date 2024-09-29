@@ -84,8 +84,7 @@ def main():
                     chapter_number=chapter_number,
                     plot=plot,
                     writing_style=writing_style,
-                    instructions={"general": instructions, "style_guide": style_guide},
-                    min_word_count=1000,  # Example minimum word count
+                    instructions={"general": instructions, "style_guide": style_guide, 'min_word_count': min_word_count, 'chapter_number': chapter_number}, # Include min_word_count and chapter_number here
                     characters=state['characters'],
                     output_path=output_path
                 )

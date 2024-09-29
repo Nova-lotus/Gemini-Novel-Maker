@@ -55,7 +55,7 @@ class ChapterGeneratorLoop:
         self.check_model = check_model
         self.logger = logging.getLogger(__name__)
 
-    def generate_chapter(self, chapter_number: int, plot: str, writing_style: str, instructions: Dict[str, Any], min_word_count: int, characters: Dict[str, Any], output_path: str) -> Tuple[str, str]:
+    def generate_chapter(self, chapter_number: int, plot: str, writing_style: str, instructions: Dict[str, Any], characters: Dict[str, Any], output_path: str) -> Tuple[str, str]:
         chapter_generator = ChapterGenerator(self.api_key, self.generation_model, self.check_model)
         context_manager = ContextManager()
         context_manager.add_plot_point(plot)
@@ -65,6 +65,5 @@ class ChapterGeneratorLoop:
             context_manager.add_character(name, description)
         context = context_manager.get_context()
         chapter_path = os.path.join(output_path, f'Chapter {chapter_number}.docx')
-        instructions['min_word_count'] = min_word_count
         chapter = chapter_generator.generate_chapter(instructions, context, chapter_path, chapter_number)
         return chapter, chapter_path
