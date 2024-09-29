@@ -20,3 +20,51 @@ This project uses Google's Gemini API models to generate chapters for a novel. I
 - Install required packages: `pip install -r requirements.txt`
 
 ### Clone the Repository
+```sh
+git clone https://github.com/Nova-lotus/Gemini-Novel-Maker.git
+cd gemini-novel-maker
+```
+
+### Install Dependencies
+```sh
+pip install -r requirements.txt
+```
+
+## Usage
+
+### Before You Begin
+Before you use the application, be sure to put any previous chapters you had in the `output` folder.
+
+### Run the Application
+```sh
+streamlit run app.py
+```
+
+### Add Characters
+- Navigate to the "Characters" section.
+- Enter the character name and description.
+- Click "Add Character" to add the character to the story.
+
+### Set Plot, Writing Style, and Instructions
+- Input the plot, writing style, and any additional instructions in the respective text areas.
+
+### Set Output Path
+- Enter the desired output path for the generated chapters.
+- Click "Set Output Path" to create the directory if it doesn't exist.
+
+### Generate Chapter
+- Enter the chapter number.
+- Click "Generate Chapter" to start the generation process.
+- The application will generate the chapter and save it to the specified output path.
+
+### View Generated Chapter
+- The generated chapter will be displayed in the application.
+- The chapter will also be saved as a `.docx` file in the specified output path.
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.
+
+## License
+
+This project is licensed under the [Apache License 2.0](https://www.apache.org/licenses/LICENSE-2.0).
