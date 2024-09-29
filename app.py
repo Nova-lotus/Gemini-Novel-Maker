@@ -74,6 +74,8 @@ def main():
         st.session_state['generating'] = True
 
         try:
+            min_word_count = st.number_input("Minimum Word Count", min_value=0, value=1000, step=100, disabled=st.session_state.get('generating', False))  # Define min_word_count here
+
             looping_generator = ChapterGeneratorLoop(
                 api_key=api_key,
                 generation_model=generation_model,
@@ -84,7 +86,7 @@ def main():
                     chapter_number=chapter_number,
                     plot=plot,
                     writing_style=writing_style,
-                    instructions={"general": instructions, "style_guide": style_guide, 'min_word_count': min_word_count, 'chapter_number': chapter_number}, # Include min_word_count and chapter_number here
+                    instructions={"general": instructions, "style_guide": style_guide, 'min_word_count': min_word_count, 'chapter_number': chapter_number},  # Include min_word_count and chapter_number here
                     characters=state['characters'],
                     output_path=output_path
                 )
