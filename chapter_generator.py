@@ -7,6 +7,7 @@ from docx import Document  # type: ignore
 import logging
 import traceback
 import datetime
+import re
 
 # Load environment variables from .env file
 load_dotenv()
@@ -21,6 +22,7 @@ class ChapterGenerator:
         self.logger = logging.getLogger(__name__)
 
     def generate_chapter(self, instructions: Dict[str, Any], context: str, chapter_path: str, chapter_number: int) -> str:
+        min_word_count = instructions.get('min_word_count', 0)  # Get min_word_count from instructions
         try:
             self.logger.info(f"Generating chapter {chapter_number}...")
 
@@ -70,6 +72,11 @@ class ChapterGenerator:
             # Save the chapter regardless of warnings
             self.save_response(chapter, chapter_path, chapter_number)
             self.save_validity_feedback(is_valid, feedback, chapter_path, review_feedback, style_guide_feedback, continuity_feedback, test_results, adheres_to_style_guide, continuity, chapter_number)
+
+            # Extend the chapter if it's too short
+            if len(chapter.split()) < min_word_count:
+                self.logger.info(f"Extending chapter {chapter_number} as it is below the minimum word count...")
+                chapter = self.extend_chapter(chapter, instructions, context, min_word_count)
 
             return chapter
 
@@ -201,22 +208,30 @@ class ChapterGenerator:
             return False, "An error occurred while checking continuity."
 
     def get_existing_chapter_content(self, chapter_number: int) -> Optional[str]:
+        def extract_chapter_number(filename):
+            match = re.search(r'\d+', filename)
+            return int(match.group()) if match else -1  # Return -1 for invalid filenames
+
         existing_content = ""
         total_tokens = 0
-        
-        for i in range(1, chapter_number):
-            previous_chapter_path = f'output/Chapter {i}.docx'
-            if os.path.exists(previous_chapter_path):
+
+        chapter_files = [f for f in os.listdir('output') if f.endswith('.docx') and extract_chapter_number(f) != -1]
+        chapter_files.sort(key=extract_chapter_number)  # Sort by extracted chapter number
+
+        for filename in chapter_files:
+            current_chapter_number = extract_chapter_number(filename)
+            if current_chapter_number < chapter_number:
+                previous_chapter_path = os.path.join('output', filename)
                 doc = Document(previous_chapter_path)
                 chapter_content = "\n".join([paragraph.text for paragraph in doc.paragraphs])
                 chapter_tokens = self.estimate_token_count(chapter_content)
-                
+
                 if total_tokens + chapter_tokens > self.MAX_INPUT_TOKENS // 2:  # Use only half for previous chapters
                     break
-                
+
                 existing_content = chapter_content + "\n" + existing_content
                 total_tokens += chapter_tokens
-        
+
         return existing_content if existing_content else None
 
     def save_response(self, chapter: str, output_path: str, chapter_number: int):
@@ -307,3 +322,28 @@ class ChapterGenerator:
             return previous_chapters[-1]
         else:
             return ""
+
+    def extend_chapter(self, chapter: str, instructions: Dict[str, Any], context: str, min_word_count: int) -> str:
+        while len(chapter.split()) < min_word_count:
+            prompt = f"""
+            Current Chapter: {chapter}
+            Instructions:
+            Plot: {instructions.get('plot', '')}
+            Writing Style: {instructions.get('writing_style', '')}
+            Additional Instructions: {instructions.get('instructions', '')}
+            Context: {context}
+            Minimum Word Count: {min_word_count}
+
+            The current chapter is below the minimum word count. Extend the chapter further, maintaining consistency with the existing content and instructions.
+            """
+            generation_config = genai.GenerationConfig(
+                max_output_tokens=self.MAX_OUTPUT_TOKENS,
+                temperature=1,
+            )
+            response = self.generation_model.generate_content(
+                prompt,
+                generation_config=generation_config
+            )
+            extension = response.text
+            chapter += " " + extension  # Add the extension to the chapter
+        return chapter
