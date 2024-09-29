@@ -329,4 +329,13 @@ class ChapterGenerator:
             Current Chapter: {chapter}
             Instructions:
             Plot: {instructions.get('plot', '')}
-            Writing Style:
+            Writing Style: {instructions.get('writing_style', '')}
+            Additional Instructions: {instructions.get('instructions', '')}
+            Context: {context}
+            
+            Extend the chapter to meet the minimum word count of {min_word_count} words.
+            Ensure that the extension is seamless and maintains the plot, characters, and writing style.
+            """
+            response = self.generation_model.generate_content(prompt)
+            chapter += response.text
+        return chapter
