@@ -66,6 +66,8 @@ def main():
         state['output_path'] = output_path
         save_state(state)
 
+    min_word_count = st.number_input("Minimum Word Count", min_value=0, value=1000, step=100, disabled=st.session_state.get('generating', False))
+
     if st.button("Generate Chapter", disabled=st.session_state.get('generating', False)):
         if not api_key:
             st.error("Please provide an API Key.")
@@ -74,8 +76,6 @@ def main():
         st.session_state['generating'] = True
 
         try:
-            min_word_count = st.number_input("Minimum Word Count", min_value=0, value=1000, step=100, disabled=st.session_state.get('generating', False))  # Define min_word_count here
-
             looping_generator = ChapterGeneratorLoop(
                 api_key=api_key,
                 generation_model=generation_model,

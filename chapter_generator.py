@@ -50,14 +50,10 @@ class ChapterGenerator:
             
             self.logger.info(f"Chapter {chapter_number} generation completed.")
             
-            # Save the chapter regardless of warnings
-            self.save_response(chapter, chapter_path, chapter_number)
-            
             # Extend the chapter if it's too short
             if len(chapter.split()) < min_word_count:
                 self.logger.info(f"Extending chapter {chapter_number} as it is below the minimum word count...")
                 chapter = self.extend_chapter(chapter, instructions, context, min_word_count)
-                self.save_response(chapter, chapter_path, chapter_number) # Resave the extended chapter
             
             # Run checks *after* potential extension
             self.logger.info(f"Checking chapter {chapter_number}...")
@@ -76,6 +72,9 @@ class ChapterGenerator:
             test_results = self.run_tests(chapter, instructions, previous_chapters)
             
             self.save_validity_feedback(is_valid, feedback, chapter_path, review_feedback, style_guide_feedback, continuity_feedback, test_results, adheres_to_style_guide, continuity, chapter_number)
+            
+            # Save the final chapter
+            self.save_response(chapter, chapter_path, chapter_number)
             
             return chapter
 
@@ -107,6 +106,8 @@ class ChapterGenerator:
         Based on the above instructions, context, and previous chapters, write a new chapter for the story. 
         Ensure that the chapter follows the plot points, incorporates the characters and settings, 
         adheres to the specified writing style, and maintains continuity with previous chapters.
+        Avoid starting with phrases like: "Continuing from where we left off", "Picking up where we left off", "Resuming the story", etc.
+        Start the extension seamlessly as if it were part of the original generation.
         """
         
         return prompt
