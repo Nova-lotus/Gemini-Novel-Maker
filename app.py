@@ -9,7 +9,7 @@ import logging
 import traceback
 import sys
 from typing import Dict, Any
-from utils import generate_chapter, save_state, load_state, ChapterGeneratorLoop
+from utils import save_state, load_state, ChapterGeneratorLoop
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
@@ -18,26 +18,7 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %
 load_dotenv()
 
 # Load or initialize the state
-state_file = 'app_state.json'
-if os.path.exists(state_file):
-    with open(state_file, 'r') as f:
-        state = json.load(f)
-else:
-    state = {
-        'output_path': 'output',
-        'characters': {},
-        'plot': '',
-        'writing_style': '',
-        'instructions': '',
-        'style_guide': '',
-        'api_key': '',
-        'generation_model': 'gemini-1.5-flash-002',
-        'check_model': 'gemini-1.5-flash-002'
-    }
-
-def save_state(state):
-    with open(state_file, 'w') as f:
-        json.dump(state, f, indent=4)
+state = load_state()
 
 def main():
     st.title("Chapter Generator and Checker")
