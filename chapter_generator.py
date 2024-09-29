@@ -210,13 +210,13 @@ class ChapterGenerator:
     def get_existing_chapter_content(self, chapter_number: int) -> Optional[str]:
         def extract_chapter_number(filename):
             match = re.search(r'\d+', filename)
-            return int(match.group()) if match else -1  # Return -1 for invalid filenames
+            return int(match.group()) if match else -1
 
         existing_content = ""
         total_tokens = 0
 
         chapter_files = [f for f in os.listdir('output') if f.endswith('.docx') and extract_chapter_number(f) != -1]
-        chapter_files.sort(key=extract_chapter_number)  # Sort by extracted chapter number
+        chapter_files.sort(key=extract_chapter_number)
 
         for filename in chapter_files:
             current_chapter_number = extract_chapter_number(filename)
@@ -226,10 +226,10 @@ class ChapterGenerator:
                 chapter_content = "\n".join([paragraph.text for paragraph in doc.paragraphs])
                 chapter_tokens = self.estimate_token_count(chapter_content)
 
-                if total_tokens + chapter_tokens > self.MAX_INPUT_TOKENS // 2:  # Use only half for previous chapters
+                if total_tokens + chapter_tokens > self.MAX_INPUT_TOKENS // 2:
                     break
 
-                existing_content = f"Chapter {current_chapter_number}: {chapter_content}\n" + existing_content # Add chapter number before content
+                existing_content = f"Chapter {current_chapter_number}: {chapter_content}\n" + existing_content
                 total_tokens += chapter_tokens
 
         return existing_content if existing_content else None
