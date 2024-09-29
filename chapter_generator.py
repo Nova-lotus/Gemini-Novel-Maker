@@ -332,9 +332,11 @@ class ChapterGenerator:
             Writing Style: {instructions.get('writing_style', '')}
             Additional Instructions: {instructions.get('instructions', '')}
             Context: {context}
-            
-            Extend the chapter to meet the minimum word count of {min_word_count} words.
-            Ensure that the extension is seamless and maintains the plot, characters, and writing style.
+            Avoid starting with phrases like: "Continuing from where we left off", "Picking up where we left off", "Resuming the story", etc.
+            Start the extension seamlessly as if it were part of the original generation.
+            Minimum Word Count: {min_word_count}
+
+            The current chapter is below the minimum word count. Extend the chapter further, maintaining consistency with the existing content and instructions.
             """
             response = self.generation_model.generate_content(prompt)
             chapter += response.text

@@ -23,11 +23,9 @@ class ContextManager:
         context_str = ""
         for key, value in self.context.items():
             if isinstance(value, dict):
-                for sub_key, sub_value in value.items():
-                    context_str += f"{key}: {sub_key}: {sub_value}\n"
+                context_str += "\n".join([f"{key}: {sub_key}: {sub_value}" for sub_key, sub_value in value.items()]) + "\n"
             elif isinstance(value, list):
-                for item in value:
-                    context_str += f"{key}: {item}\n"
+                context_str += "\n".join([f"{key}: {item}" for item in value]) + "\n"
         return context_str
 
     def update_context(self, new_context):

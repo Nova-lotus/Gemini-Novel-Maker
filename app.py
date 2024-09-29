@@ -74,7 +74,7 @@ def main():
             return
 
         st.session_state['generating'] = True
-
+        progress_bar = st.progress(0)
         try:
             looping_generator = ChapterGeneratorLoop(
                 api_key=api_key,
@@ -86,10 +86,11 @@ def main():
                     chapter_number=chapter_number,
                     plot=plot,
                     writing_style=writing_style,
-                    instructions={"general": instructions, "style_guide": style_guide, 'min_word_count': min_word_count, 'chapter_number': chapter_number},  # Include min_word_count and chapter_number here
+                    instructions={"general": instructions, "style_guide": style_guide, 'min_word_count': min_word_count, 'chapter_number': chapter_number},
                     characters=state['characters'],
                     output_path=output_path
                 )
+                progress_bar.progress(100)
 
             if chapter is None:
                 st.error("Failed to generate chapter after multiple retries.")
@@ -100,11 +101,9 @@ def main():
             with open(chapter_path, "rb") as f:
                 st.download_button("Download Chapter", f, file_name=os.path.basename(chapter_path))
 
-            # Display the generated chapter
             st.subheader(f"Generated Chapter {chapter_number}")
             st.write(chapter)
 
-            # Save the state after successful generation
             state['plot'] = plot
             state['writing_style'] = writing_style
             state['instructions'] = instructions
@@ -115,22 +114,14 @@ def main():
             save_state(state)
 
         except Exception as e:
-            # Get the full traceback
             exc_type, exc_value, exc_traceback = sys.exc_info()
-            
-            # Format the traceback
             tb_lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
             tb_text = ''.join(tb_lines)
-            
-            # Log the error with the full traceback
             logging.error(f"An error occurred: {str(e)}\n{tb_text}")
-            
-            # Display a more detailed error message to the user
             st.error(f"An error occurred: {str(e)}")
             st.error("Error details:")
-            st.code(tb_text)  # This will display the traceback in a code block
+            st.code(tb_text)
             st.error("Please check the logs for more details and report this issue to the development team.")
-
         finally:
             st.session_state['generating'] = False
 
