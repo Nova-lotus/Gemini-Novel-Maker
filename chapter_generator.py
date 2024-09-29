@@ -329,23 +329,4 @@ class ChapterGenerator:
             Current Chapter: {chapter}
             Instructions:
             Plot: {instructions.get('plot', '')}
-            Writing Style: {instructions.get('writing_style', '')}
-            Additional Instructions: {instructions.get('instructions', '')}
-            Context: {context}
-            Avoid starting with phrases like: "Continuing from where we left off", "Picking up where we left off", "Resuming the story", etc.
-            Start the extension seamlessly as if it were part of the original generation.
-            Minimum Word Count: {min_word_count}
-
-            The current chapter is below the minimum word count. Extend the chapter further, maintaining consistency with the existing content and instructions.
-            """
-            generation_config = genai.GenerationConfig(
-                max_output_tokens=self.MAX_OUTPUT_TOKENS,
-                temperature=1,
-            )
-            response = self.generation_model.generate_content(
-                prompt,
-                generation_config=generation_config
-            )
-            extension = response.text
-            chapter += " " + extension  # Add the extension to the chapter
-        return chapter
+            Writing Style:
