@@ -9,6 +9,7 @@ import logging
 import traceback
 import sys
 from typing import Dict, Any
+from utils import generate_chapter, save_state, load_state, ChapterGeneratorLoop
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
@@ -37,50 +38,6 @@ else:
 def save_state(state):
     with open(state_file, 'w') as f:
         json.dump(state, f, indent=4)
-
-def generate_chapter(chapter_number: int, plot: str, writing_style: str, instructions: Dict[str, Any], api_key: str, generation_model: str, check_model: str, output_path: str):
-    try:
-        # Initialize components
-        logging.info("Initializing components...")
-        context_manager = ContextManager()
-        genai.configure(api_key=api_key)
-        chapter_generator = ChapterGenerator(api_key, generation_model, check_model)
-
-        # Add context from user inputs
-        logging.info("Adding context from user inputs...")
-        context_manager.add_plot_point(plot)
-        context_manager.add_other_element(f"Writing style: {writing_style}")
-        context_manager.add_other_element(f"Additional instructions: {instructions}")
-
-        # Add characters to context
-        for name, description in state['characters'].items():
-            context_manager.add_character(name, description)
-
-        # Generate the context
-        logging.info("Generating context...")
-        context = context_manager.get_context()
-
-        # Generate the chapter
-        logging.info("Generating the chapter...")
-        chapter_path = os.path.join(output_path, f'Chapter {chapter_number}.docx')
-        chapter = chapter_generator.generate_chapter(
-            instructions={
-                'plot': plot,
-                'writing_style': writing_style,
-                'instructions': instructions,
-                'style_guide': instructions.get('style_guide', ''),
-                'chapter_filename': chapter_path
-            },
-            context=context,
-            chapter_path=chapter_path
-        )
-
-        return chapter, chapter_path
-
-    except Exception as e:
-        logging.error(f"An error occurred in generate_chapter function: {str(e)}")
-        logging.error(traceback.format_exc())
-        raise
 
 def main():
     st.title("Chapter Generator and Checker")
@@ -121,7 +78,7 @@ def main():
         if not os.path.exists(output_path):
             try:
                 os.makedirs(output_path, exist_ok=True)
-                st.success(f"Output path '{output_path}' created successfully.")
+                st.success(f"Output path '{output_path}' created or already exists.")
             except Exception as e:
                 st.error(f"Failed to create output path: {str(e)}")
                 return
@@ -136,19 +93,30 @@ def main():
         st.session_state['generating'] = True
 
         try:
+            looping_generator = ChapterGeneratorLoop(
+                api_key=api_key,
+                generation_model=generation_model,
+                check_model=check_model
+            )
             with st.spinner('Generating chapter...'):
-                chapter, chapter_path = generate_chapter(
-                    chapter_number, 
-                    plot, 
-                    writing_style, 
-                    {"general": instructions, "style_guide": style_guide}, 
-                    api_key, 
-                    generation_model,
-                    check_model,
-                    output_path
+                chapter, chapter_path = looping_generator.generate_chapter(
+                    chapter_number=chapter_number,
+                    plot=plot,
+                    writing_style=writing_style,
+                    instructions={"general": instructions, "style_guide": style_guide},
+                    min_word_count=1000,  # Example minimum word count
+                    characters=state['characters'],
+                    output_path=output_path
                 )
 
+            if chapter is None:
+                st.error("Failed to generate chapter after multiple retries.")
+                st.session_state['generating'] = False
+                return
+
             st.success(f"Chapter {chapter_number} generated successfully!")
+            with open(chapter_path, "rb") as f:
+                st.download_button("Download Chapter", f, file_name=os.path.basename(chapter_path))
 
             # Display the generated chapter
             st.subheader(f"Generated Chapter {chapter_number}")

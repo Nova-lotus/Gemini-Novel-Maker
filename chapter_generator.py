@@ -18,40 +18,37 @@ class ChapterGenerator:
         self.check_model = genai.GenerativeModel(check_model)
         self.MAX_INPUT_TOKENS = 2097152 if 'pro' in generation_model else 1048576
         self.MAX_OUTPUT_TOKENS = 8192
+        self.logger = logging.getLogger(__name__)
 
-    def estimate_token_count(self, text: str) -> int:
-        # Gemini models use about 4 characters per token
-        return len(text) // 4
-
-    def generate_chapter(self, instructions: Dict[str, Any], context: str, chapter_path: str) -> str:
+    def generate_chapter(self, instructions: Dict[str, Any], context: str, chapter_path: str, chapter_number: int) -> str:
         try:
-            chapter_number = self._get_chapter_number(chapter_path)
+            self.logger.info(f"Generating chapter {chapter_number}...")
+
             previous_chapters = self.get_existing_chapter_content(chapter_number)
             
             prompt = self._construct_prompt(instructions, context, previous_chapters, chapter_path)
             
-            logging.debug(f"Generated prompt")
+            self.logger.debug(f"Generated prompt for chapter {chapter_number}")
             
             generation_config = genai.GenerationConfig(
                 max_output_tokens=self.MAX_OUTPUT_TOKENS,
                 temperature=1,
             )
             
-            logging.info("Starting chapter generation...")
             response = self.generation_model.generate_content(
                 prompt,
                 generation_config=generation_config,
                 stream=True
-            )
-            logging.info("Chapter generation started successfully.")
+            )   
             
             chapter = ""
-            logging.info("Starting to process stream...")
             for chunk in response:
                 chapter += chunk.text
-            logging.info("Chapter generation completed.")
+            
+            self.logger.info(f"Chapter {chapter_number} generation completed.")
             
             # Check the chapter
+            self.logger.info(f"Checking chapter {chapter_number}...")
             is_valid, feedback = self.check_chapter(chapter, instructions, previous_chapters)
             
             # Review the chapter
@@ -77,16 +74,16 @@ class ChapterGenerator:
             return chapter
 
         except Exception as e:
-            logging.error(f"Error generating chapter: {e}")
-            logging.error(traceback.format_exc())  # This will log the full stack trace
+            self.logger.error(f"Error generating chapter {chapter_number}: {e}")
+            self.logger.error(traceback.format_exc())
             return f"Error generating chapter: {str(e)}"
 
     def _get_chapter_number(self, chapter_path: str) -> int:
         try:
             chapter_number = int(chapter_path.split('/')[-1].split(' ')[1].split('.')[0])
             return chapter_number
-        except Exception as e:
-            logging.error(f"Error extracting chapter number from path: {e}")
+        except (ValueError, IndexError):
+            self.logger.warning(f"Could not parse chapter number from file path: {chapter_path}. Defaulting to 1.")
             return 1  # Default to chapter 1 if extraction fails
 
     def _construct_prompt(self, instructions: Dict[str, Any], context: str, previous_chapters: Optional[str], chapter_path: str) -> str:
@@ -133,7 +130,7 @@ class ChapterGenerator:
             feedback = response_text.split("Feedback:")[1].strip() if "Feedback:" in response_text else response_text
             return is_valid, feedback
         except Exception as e:
-            logging.error(f"Error checking chapter: {e}")
+            self.logger.error(f"Error checking chapter: {e}")
             return False, "An error occurred while checking the chapter."
 
     def review_chapter(self, chapter: str, instructions: Dict[str, Any], previous_chapters: Optional[str]) -> List[str]:
@@ -156,10 +153,9 @@ class ChapterGenerator:
             response = self.check_model.generate_content(prompt)
             response_text = response.text
             review_feedback = response_text.split("Review:")[1].strip() if "Review:" in response_text else response_text
-            return review_feedback.split('\
-')
+            return review_feedback.split('\n')
         except Exception as e:
-            logging.error(f"Error reviewing chapter: {e}")
+            self.logger.error(f"Error reviewing chapter: {e}")
             return ["An error occurred while reviewing the chapter."]
 
     def enforce_style_guide(self, chapter: str, style_guide: str) -> Tuple[bool, str]:
@@ -180,7 +176,7 @@ class ChapterGenerator:
             feedback = response_text.split("Feedback:")[1].strip() if "Feedback:" in response_text else response_text
             return adheres_to_style_guide, feedback
         except Exception as e:
-            logging.error(f"Error enforcing style guide: {e}")
+            self.logger.error(f"Error enforcing style guide: {e}")
             return False, "An error occurred while enforcing the style guide."
 
     def check_continuity(self, chapter: str, previous_chapters: str) -> Tuple[bool, str]:
@@ -201,7 +197,7 @@ class ChapterGenerator:
             feedback = response_text.split("Feedback:")[1].strip() if "Feedback:" in response_text else response_text
             return continuity, feedback
         except Exception as e:
-            logging.error(f"Error checking continuity: {e}")
+            self.logger.error(f"Error checking continuity: {e}")
             return False, "An error occurred while checking continuity."
 
     def get_existing_chapter_content(self, chapter_number: int) -> Optional[str]:
@@ -212,15 +208,13 @@ class ChapterGenerator:
             previous_chapter_path = f'output/Chapter {i}.docx'
             if os.path.exists(previous_chapter_path):
                 doc = Document(previous_chapter_path)
-                chapter_content = "\
-".join([paragraph.text for paragraph in doc.paragraphs])
+                chapter_content = "\n".join([paragraph.text for paragraph in doc.paragraphs])
                 chapter_tokens = self.estimate_token_count(chapter_content)
                 
                 if total_tokens + chapter_tokens > self.MAX_INPUT_TOKENS // 2:  # Use only half for previous chapters
                     break
                 
-                existing_content = chapter_content + "\
-" + existing_content
+                existing_content = chapter_content + "\n" + existing_content
                 total_tokens += chapter_tokens
         
         return existing_content if existing_content else None
@@ -282,11 +276,14 @@ class ChapterGenerator:
             response = self.check_model.generate_content(prompt)
             response_text = response.text
             test_results = response_text.split("Test Results:")[1].strip() if "Test Results:" in response_text else response_text
-            return test_results.split('\
-')
+            return test_results.split('\n')
         except Exception as e:
-            logging.error(f"Error running tests: {e}")
+            self.logger.error(f"Error running tests: {e}")
             return ["An error occurred while running tests."]
+
+    def estimate_token_count(self, text: str) -> int:
+        # Gemini models use about 4 characters per token
+        return len(text) // 4
 
     def embed_content(self, content: str) -> List[float]:
         result = genai.embed_content(

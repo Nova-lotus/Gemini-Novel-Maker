@@ -20,7 +20,15 @@ class ContextManager:
         self.context['other_elements'].append(element)
 
     def get_context(self):
-        return str(self.context)
+        context_str = ""
+        for key, value in self.context.items():
+            if isinstance(value, dict):
+                for sub_key, sub_value in value.items():
+                    context_str += f"{key}: {sub_key}: {sub_value}\n"
+            elif isinstance(value, list):
+                for item in value:
+                    context_str += f"{key}: {item}\n"
+        return context_str
 
     def update_context(self, new_context):
         self.context.update(new_context)
